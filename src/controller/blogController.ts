@@ -21,9 +21,9 @@ export const getAllBlogs = async (req: Request, res: Response) => {
 
 export const createBlog = async (req: Request, res: Response) => {
     const userEntityManager = AppDataSource.getRepository(User);
-    const user = await userEntityManager.findOneBy({id:req.body.userId});
-    if(!user){
-        return res.status(500).send("User not found");
+    const user = await userEntityManager.findOneBy({ id: req.body.userId });
+    if (!user) {
+        return res.status(404).send("User not found, Please create user first");
     }
     console.log(user);
 
@@ -51,13 +51,73 @@ export const getBlog = async (req: Request, res: Response) => {
     try {
         const blogs = await entityManager.findOne({
             where: {
-                id:req.params.id
+                id: req.params.id as any
             },
             relations: {
                 user: true,
             }
         });
+        if (!blogs) {
+            return res.status(404).send("Blog not found");
+        }
         return res.send(blogs);
+    } catch (error) {
+        return res.status(500).send(error);
+    }
+}
+
+
+export const updateBlog = async (req: Request, res: Response) => {
+
+    const entityManager = AppDataSource.getRepository(Blog);
+    let blog = await entityManager.findOne({
+        where: {
+            id: req.params.id as any
+        },
+        relations: {
+            user: true,
+        }
+    });
+    if (!blog) {
+        return res.status(404).send("Blog not found");
+    }
+
+    const userEntityManager = AppDataSource.getRepository(User);
+    const user = await userEntityManager.findOneBy({ id: req.body.userId });
+
+    if (!user) {
+        return res.status(404).send("User not found, Please create user first");
+    }
+
+    blog.title = req.body.title ? req.body.title : blog.title;
+    blog.content = req.body.content ? req.body.content : blog.content;
+    blog.blogCreatedDate = req.body.blogCreatedDate ? req.body.blogCreatedDate : blog.blogCreatedDate;
+
+    try {
+        const updatedBlog = await entityManager.save(blog);
+        return res.send(updatedBlog);
+    } catch (error) {
+        return res.status(500).send(error);
+    }
+
+}
+
+export const deleteBlog = async (req: Request, res: Response) => {
+    const entityManager = AppDataSource.getRepository(Blog);
+    try {
+        const blog = await entityManager.findOne({
+            where: {
+                id: req.params.id as any
+            },
+            relations: {
+                user: true,
+            }
+        });
+        if (!blog) {
+            return res.status(404).send("Blog not found");
+        }
+        await entityManager.remove(blog);
+        return res.send("Blog deleted successfully");
     } catch (error) {
         return res.status(500).send(error);
     }

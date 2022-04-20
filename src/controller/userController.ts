@@ -1,6 +1,6 @@
 import { User } from "../entity/User";
 import { Blog } from "../entity/Blog";
-import {Request, Response, NextFunction} from "express";
+import { Request, Response, NextFunction } from "express";
 import { getRepository } from "typeorm";
 import { AppDataSource } from '../data-source';
 
@@ -18,13 +18,23 @@ export const getAllUser = async (req: Request, res: Response) => {
     } catch (error) {
         return res.status(500).send(error);
     }
-    
+
 }
 
 export const getUser = async (req: Request, res: Response) => {
     const entityManager = AppDataSource.getRepository(User);
     try {
-        const user = await entityManager.findOneBy({id:req.params.id});
+        const user = await entityManager.findOne({
+            where: {
+                id: req.params.id as any
+            },
+            relations: {
+                blogs: true,
+            }
+        });
+        if (!user) {
+            return res.status(404).send("User not found");
+        }
         return res.send(user);
     } catch (error) {
         return res.status(500).send(error);
@@ -42,8 +52,8 @@ export const createUser = async (req: Request, res: Response) => {
     }
     try {
 
-        let data = await entityManager.findOneBy({email:userData.email});
-        if(data){
+        let data = await entityManager.findOneBy({ email: userData.email });
+        if (data) {
             return res.status(500).send("User already exists");
         }
         const user = await entityManager.save(userData);
@@ -56,28 +66,22 @@ export const createUser = async (req: Request, res: Response) => {
 
 export const updateUser = async (req: Request, res: Response) => {
     const entityManager = AppDataSource.getRepository(User);
-    let userData = {
-        firstName: req.body.firstName,
-        lastName: req.body.lastName,
-        age: req.body.age,
-        email: req.body.email,
-        password: req.body.password
-    }
+
     try {
-        const user = await entityManager.findOneBy({id:req.params.id});
-        if(!user){
+        const user = await entityManager.findOneBy({ id: req.params.id as any });
+        if (!user) {
             return res.status(500).send("User not found");
         }
         //find user by email
-        let data = await entityManager.findOneBy({email:userData.email});
-        if(data){
+        let data = await entityManager.findOneBy({ email: req.body.email });
+        if (data) {
             return res.status(500).send("Email already exists");
         }
-        user.firstName = userData.firstName;
-        user.lastName = userData.lastName;
-        user.age = userData.age;
-        user.email = userData.email;
-        user.password = userData.password;
+        user.firstName = req.body.firstName ? req.body.firstName : user.firstName;
+        user.lastName = req.body.lastName ? req.body.lastName : user.lastName;
+        user.age = req.body.age ? req.body.age : user.age;
+        user.email = req.body.email ? req.body.email : user.email;
+        user.password = req.body.password ? req.body.password : user.password;
         const updatedUser = await entityManager.save(user);
         return res.send(updatedUser);
     } catch (error) {
@@ -90,9 +94,9 @@ export const deleteUser = async (req: Request, res: Response) => {
     const entityManager = AppDataSource.getRepository(User);
     try {
         const user = await entityManager.findOne({
-            where:{id:req.params.id}
+            where: { id: req.params.id as any }
         });
-        if(!user){
+        if (!user) {
             return res.status(500).send("User not found");
         }
         await entityManager.softRemove(user);
