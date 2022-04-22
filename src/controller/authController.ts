@@ -4,6 +4,8 @@ import { User } from "../entity/User";
 import axios from "axios";
 import * as jwt from 'express-jwt';
 import * as jwks from 'jwks-rsa';
+import { validationResult } from 'express-validator';
+
 
 const generateAoth0Token = async () => {
 
@@ -34,12 +36,19 @@ export const verifyAuth = jwt({
         jwksRequestsPerMinute: 5,
         jwksUri: 'https://dev-vvpop4j1.us.auth0.com/.well-known/jwks.json'
   }),
-  audience: 'https://expressBlog/',
+  audience: process.env.AUTH0_AUDIENCE,
   issuer: 'https://dev-vvpop4j1.us.auth0.com/',
   algorithms: ['RS256']
 });
 
 export const login = async (req: Request, res: Response) => {
+
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      return res.status(400).json({ errors: errors.array() });
+    }
+
+
     const entityManager = AppDataSource.getRepository(User);
     try {
         const user = await entityManager.findOneBy({ email: req.body.email, password: req.body.password });

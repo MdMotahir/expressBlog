@@ -3,7 +3,7 @@ import { Blog } from "../entity/Blog";
 import { Request, Response, NextFunction } from "express";
 import { getRepository } from "typeorm";
 import { AppDataSource } from '../data-source';
-
+import { body, validationResult } from 'express-validator';
 
 export const getAllUser = async (req: Request, res: Response) => {
 
@@ -42,6 +42,12 @@ export const getUser = async (req: Request, res: Response) => {
 }
 
 export const createUser = async (req: Request, res: Response) => {
+
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      return res.status(400).json({ errors: errors.array() });
+    }
+
     const entityManager = AppDataSource.getRepository(User);
     let userData = {
         firstName: req.body.firstName,

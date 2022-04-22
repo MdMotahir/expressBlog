@@ -3,7 +3,7 @@ import { User } from "../entity/User";
 import { Request, Response, NextFunction } from "express";
 import { getRepository } from "typeorm";
 import { AppDataSource } from '../data-source';
-
+import { body, validationResult } from 'express-validator';
 
 export const getAllBlogs = async (req: Request, res: Response) => {
     const entityManager = AppDataSource.getRepository(Blog);
@@ -20,6 +20,12 @@ export const getAllBlogs = async (req: Request, res: Response) => {
 }
 
 export const createBlog = async (req: Request, res: Response) => {
+
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      return res.status(400).json({ errors: errors.array() });
+    }
+
     const userEntityManager = AppDataSource.getRepository(User);
     const user = await userEntityManager.findOneBy({ id: req.body.userId });
     if (!user) {
@@ -35,6 +41,11 @@ export const createBlog = async (req: Request, res: Response) => {
     }
 
     const entityManager = AppDataSource.getRepository(Blog);
+
+    let data = await entityManager.findOneBy({ title: req.body.title });
+    if (data) {
+        return res.status(500).send("Blog already exists");
+    }
 
     try {
         const blog = await entityManager.save(blogData).catch(error => {
